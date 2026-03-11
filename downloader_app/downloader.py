@@ -150,13 +150,15 @@ class DownloaderService:
         selector: str,
         on_task_update: Optional[TaskCallback],
     ) -> None:
-        outtmpl = str(output_path / "%(title)s [%(id)s].%(ext)s")
+        outtmpl = str(output_path / "%(title)s [%(id)s%(autonumber+1& |)s%(autonumber)02d].%(ext)s")
         options = {
             "outtmpl": outtmpl,
             "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
             "progress_hooks": [self._build_progress_hook(task, on_task_update)],
+            "autonumber_start": 1,
+            "overwrites": False,
         }
         if self._ffmpeg_location is not None:
             options["ffmpeg_location"] = self._ffmpeg_location
@@ -341,3 +343,18 @@ class DownloaderService:
         acodec = fmt.get("acodec")
         protocol = (fmt.get("protocol") or "").lower()
         return acodec not in (None, "none") or protocol in {"http", "https"}
+
+    @staticmethod
+    def _next_available_path(path: Path) -> Path:
+        if not path.exists():
+            return path
+
+        stem = path.stem
+        suffix = path.suffix
+        parent = path.parent
+        counter = 1
+        while True:
+            candidate = parent / f"{stem} ({counter}){suffix}"
+            if not candidate.exists():
+                return candidate
+            counter += 1

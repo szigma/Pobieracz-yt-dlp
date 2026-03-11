@@ -1,4 +1,7 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from downloader_app.downloader import DownloaderService, parse_urls
 from downloader_app.models import DownloadMode, DownloadTask
@@ -105,6 +108,44 @@ class FormatSelectionTests(unittest.TestCase):
         selector = self.service._resolve_download_selector(task, info)
 
         self.assertEqual(selector, "http-950/http-632")
+
+
+class FileCollisionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.service = DownloaderService()
+
+    def test_next_available_path_returns_same_path_when_missing(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "Film [abc123].mp4"
+            self.assertEqual(self.service._next_available_path(path), path)
+
+    def test_next_available_path_adds_incrementing_suffix_for_mp4(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir) / "Film [abc123].mp4"
+            base.touch()
+            first = self.service._next_available_path(base)
+            self.assertEqual(first.name, "Film [abc123] (1).mp4")
+            first.touch()
+            second = self.service._next_available_path(base)
+            self.assertEqual(second.name, "Film [abc123] (2).mp4")
+
+    def test_next_available_path_adds_incrementing_suffix_for_mp3(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir) / "Film [abc123].mp3"
+            base.touch()
+            self.assertEqual(self.service._next_available_path(base).name, "Film [abc123] (1).mp3")
+
+    def test_download_task_uses_non_overwriting_outtmpl_settings(self) -> None:
+        service = DownloaderService()
+        task = DownloadTask(id="task-1", url="https://example.com/video", mode=DownloadMode.VIDEO)
+
+        with patch("downloader_app.downloader.YoutubeDL") as ydl_mock:
+            service._download_task(task, Path("D:/Pobieracz"), "best", None)
+
+        options = ydl_mock.call_args.args[0]
+        self.assertFalse(options["overwrites"])
+        self.assertEqual(options["autonumber_start"], 1)
+        self.assertIn("%(autonumber", options["outtmpl"])
 
 
 if __name__ == "__main__":

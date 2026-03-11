@@ -128,7 +128,8 @@ class DownloaderService:
                             "Zainstaluj ffmpeg albo wybierz format z dźwiękiem w jednym pliku."
                         )
 
-                self._download_task(task, output_path, on_task_update)
+                selector = self._resolve_download_selector(task, info)
+                self._download_task(task, output_path, selector, on_task_update)
                 if self._cancel_event.is_set():
                     task.status = "Cancelled"
                 else:
@@ -146,6 +147,7 @@ class DownloaderService:
         self,
         task: DownloadTask,
         output_path: Path,
+        selector: str,
         on_task_update: Optional[TaskCallback],
     ) -> None:
         outtmpl = str(output_path / "%(title)s [%(id)s].%(ext)s")
@@ -169,7 +171,6 @@ class DownloaderService:
                 }
             ]
         else:
-            selector = self._resolve_format_selector(task)
             options["format"] = selector
             if self._ffmpeg_available:
                 options["merge_output_format"] = "mp4"
@@ -200,6 +201,20 @@ class DownloaderService:
         selected = next((item for item in task.available_formats if item.id == task.selected_format), None)
         if selected is None or selected.availability_id not in current_ids:
             raise RuntimeError("Wybrana jakość nie jest już dostępna dla tego filmu.")
+
+    def _resolve_download_selector(self, task: DownloadTask, info: dict) -> str:
+        if task.mode != DownloadMode.VIDEO:
+            return "bestaudio/best"
+
+        if task.selected_format != "auto":
+            return self._resolve_format_selector(task)
+
+        if self._is_x_url(task.url):
+            current_formats = self._build_video_formats(info)
+            if current_formats:
+                return "/".join(option.id for option in current_formats)
+
+        return self._resolve_format_selector(task)
 
     def _extract_info(self, url: str) -> dict:
         options = {

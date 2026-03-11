@@ -93,6 +93,19 @@ class FormatSelectionTests(unittest.TestCase):
         self.assertIn("best[ext=mp4][vcodec!=none][acodec!=none]", selector)
         self.assertNotIn("bestvideo[ext=mp4]+bestaudio[ext=m4a]", selector)
 
+    def test_download_selector_uses_real_x_format_ids_for_auto(self) -> None:
+        task = DownloadTask(id="task-x2", url="https://x.com/user/status/123", mode=DownloadMode.VIDEO)
+        info = {
+            "formats": [
+                {"format_id": "http-950", "ext": "mp4", "protocol": "https", "height": 964},
+                {"format_id": "http-632", "ext": "mp4", "protocol": "https", "height": 642},
+            ]
+        }
+
+        selector = self.service._resolve_download_selector(task, info)
+
+        self.assertEqual(selector, "http-950/http-632")
+
 
 if __name__ == "__main__":
     unittest.main()

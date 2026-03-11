@@ -175,6 +175,13 @@ class DownloaderService:
 
     def _resolve_format_selector(self, task: DownloadTask) -> str:
         if task.selected_format == "auto":
+            if self._is_x_url(task.url):
+                return (
+                    "best[ext=mp4][vcodec!=none][acodec!=none]/"
+                    "best[vcodec!=none][acodec!=none]/"
+                    "best[ext=mp4][vcodec!=none]/"
+                    "best[vcodec!=none]"
+                )
             if not self._ffmpeg_available:
                 return "best[ext=mp4][acodec!=none]/best[acodec!=none]/best"
             return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best"
@@ -291,3 +298,8 @@ class DownloaderService:
 
         candidates = sorted(winget_root.rglob("ffmpeg.exe"), reverse=True)
         return any(candidate.is_file() for candidate in candidates)
+
+    @staticmethod
+    def _is_x_url(url: str) -> bool:
+        lowered = url.lower()
+        return "x.com/" in lowered or "twitter.com/" in lowered

@@ -63,6 +63,15 @@ class FormatSelectionTests(unittest.TestCase):
         self.assertEqual(updated.selected_format, "22")
         self.assertEqual(updated.selected_format_label, "720p mp4")
 
+    def test_auto_selector_prefers_complete_mp4_for_x(self) -> None:
+        task = DownloadTask(id="task-x", url="https://x.com/user/status/123", mode=DownloadMode.VIDEO)
+        self.service._tasks[task.id] = task
+
+        selector = self.service._resolve_format_selector(task)
+
+        self.assertIn("best[ext=mp4][vcodec!=none][acodec!=none]", selector)
+        self.assertNotIn("bestvideo[ext=mp4]+bestaudio[ext=m4a]", selector)
+
 
 if __name__ == "__main__":
     unittest.main()

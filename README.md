@@ -61,6 +61,68 @@ python3 -m downloader_app
 
 Jesli korzystasz z gotowego wydania, pobierz `Pobieracz-yt-dlp.exe` z sekcji Releases i uruchom plik bez instalowania Pythona.
 
+## Instalacja ffmpeg
+
+`ffmpeg` jest potrzebny do:
+
+- eksportu do `MP3`,
+- laczenia osobnych strumieni obrazu i dzwieku przy czesci filmow.
+
+### Windows
+
+Najprosciej przez `winget`:
+
+```powershell
+winget install Gyan.FFmpeg.Essentials
+```
+
+Po instalacji uruchom ponownie terminal i sprawdz:
+
+```powershell
+ffmpeg -version
+```
+
+### macOS
+
+Przez Homebrew:
+
+```bash
+brew install ffmpeg
+```
+
+Sprawdzenie:
+
+```bash
+ffmpeg -version
+```
+
+### Linux
+
+Ubuntu / Debian:
+
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+Fedora:
+
+```bash
+sudo dnf install ffmpeg
+```
+
+Arch Linux:
+
+```bash
+sudo pacman -S ffmpeg
+```
+
+Sprawdzenie:
+
+```bash
+ffmpeg -version
+```
+
 ## Testy
 
 ### Windows PowerShell

@@ -49,6 +49,27 @@ class FormatSelectionTests(unittest.TestCase):
         self.assertEqual(options[0].label, "1080p mp4 (wymaga ffmpeg)")
         self.assertTrue(options[0].requires_ffmpeg)
 
+    def test_build_video_formats_accepts_x_progressive_http_mp4(self) -> None:
+        info = {
+            "formats": [
+                {
+                    "format_id": "http-950",
+                    "ext": "mp4",
+                    "protocol": "https",
+                    "height": 964,
+                    "width": 480,
+                    "vcodec": None,
+                    "acodec": None,
+                }
+            ]
+        }
+
+        options = self.service._build_video_formats(info)
+
+        self.assertEqual(len(options), 1)
+        self.assertEqual(options[0].label, "964p mp4")
+        self.assertFalse(options[0].requires_ffmpeg)
+
     def test_set_selected_format_updates_label(self) -> None:
         task = DownloadTask(id="task-1", url="https://example.com", mode=DownloadMode.VIDEO)
         task.available_formats = self.service._build_video_formats(

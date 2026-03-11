@@ -33,7 +33,8 @@ class DownloaderService:
     def __init__(self) -> None:
         self._tasks: dict[str, DownloadTask] = {}
         self._cancel_event = threading.Event()
-        self._ffmpeg_available = self._detect_ffmpeg_available()
+        self._ffmpeg_location = self._detect_ffmpeg_location()
+        self._ffmpeg_available = self._ffmpeg_location is not None
 
     def analyze_urls(
         self,
@@ -112,7 +113,8 @@ class DownloaderService:
             self._emit(on_task_update, task)
 
             try:
-                self._ffmpeg_available = self._detect_ffmpeg_available()
+                self._ffmpeg_location = self._detect_ffmpeg_location()
+                self._ffmpeg_available = self._ffmpeg_location is not None
                 if task.mode == DownloadMode.AUDIO and not self._ffmpeg_available:
                     raise RuntimeError("Tryb MP3 wymaga zainstalowanego ffmpeg w zmiennej PATH.")
 
@@ -154,6 +156,8 @@ class DownloaderService:
             "no_warnings": True,
             "progress_hooks": [self._build_progress_hook(task, on_task_update)],
         }
+        if self._ffmpeg_location is not None:
+            options["ffmpeg_location"] = self._ffmpeg_location
 
         if task.mode == DownloadMode.AUDIO:
             options["format"] = "bestaudio/best"
@@ -217,17 +221,20 @@ class DownloaderService:
         for fmt in formats:
             format_id = fmt.get("format_id")
             ext = (fmt.get("ext") or "").lower()
-            vcodec = fmt.get("vcodec")
-            if not format_id or vcodec in (None, "none"):
+            if not format_id:
                 continue
             if ext and ext != "mp4":
+                continue
+
+            has_video = self._format_has_video(fmt)
+            if not has_video:
                 continue
 
             height = fmt.get("height")
             if not height:
                 continue
 
-            has_audio = fmt.get("acodec") not in (None, "none")
+            has_audio = self._format_has_audio(fmt)
             note = "video+audio" if has_audio else "video + best audio"
             base_label = f"{height}p mp4"
             label = base_label if has_audio else f"{base_label} (wymaga ffmpeg)"
@@ -257,7 +264,7 @@ class DownloaderService:
 
     @staticmethod
     def _format_score(fmt: dict) -> int:
-        return 1 if fmt.get("acodec") not in (None, "none") else 0
+        return 1 if DownloaderService._format_has_audio(fmt) else 0
 
     def _build_progress_hook(
         self,
@@ -288,18 +295,34 @@ class DownloaderService:
             callback(copy.deepcopy(task))
 
     @staticmethod
-    def _detect_ffmpeg_available() -> bool:
-        if shutil.which("ffmpeg") is not None:
-            return True
+    def _detect_ffmpeg_location() -> str | None:
+        detected = shutil.which("ffmpeg")
+        if detected is not None:
+            return str(Path(detected).parent)
 
         winget_root = Path.home() / "AppData" / "Local" / "Microsoft" / "WinGet" / "Packages"
         if not winget_root.exists():
-            return False
+            return None
 
         candidates = sorted(winget_root.rglob("ffmpeg.exe"), reverse=True)
-        return any(candidate.is_file() for candidate in candidates)
+        for candidate in candidates:
+            if candidate.is_file():
+                return str(candidate.parent)
+        return None
 
     @staticmethod
     def _is_x_url(url: str) -> bool:
         lowered = url.lower()
         return "x.com/" in lowered or "twitter.com/" in lowered
+
+    @staticmethod
+    def _format_has_video(fmt: dict) -> bool:
+        vcodec = fmt.get("vcodec")
+        protocol = (fmt.get("protocol") or "").lower()
+        return vcodec not in (None, "none") or protocol in {"http", "https"}
+
+    @staticmethod
+    def _format_has_audio(fmt: dict) -> bool:
+        acodec = fmt.get("acodec")
+        protocol = (fmt.get("protocol") or "").lower()
+        return acodec not in (None, "none") or protocol in {"http", "https"}

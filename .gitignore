@@ -46,6 +46,17 @@ coverage/
 .eslintcache
 *.tsbuildinfo
 
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
 # OS / editor
 .DS_Store
 Thumbs.db

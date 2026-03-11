@@ -129,7 +129,7 @@ class DownloaderService:
                         )
 
                 selector = self._resolve_download_selector(task, info)
-                self._download_task(task, output_path, selector, on_task_update)
+                self._download_task(task, output_path, info, selector, on_task_update)
                 if self._cancel_event.is_set():
                     task.status = "Cancelled"
                 else:
@@ -147,17 +147,17 @@ class DownloaderService:
         self,
         task: DownloadTask,
         output_path: Path,
+        info: dict,
         selector: str,
         on_task_update: Optional[TaskCallback],
     ) -> None:
-        outtmpl = str(output_path / "%(title)s [%(id)s%(autonumber+1& |)s%(autonumber)02d].%(ext)s")
+        outtmpl = str(self._build_output_path(task, output_path, info))
         options = {
             "outtmpl": outtmpl,
             "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
             "progress_hooks": [self._build_progress_hook(task, on_task_update)],
-            "autonumber_start": 1,
             "overwrites": False,
         }
         if self._ffmpeg_location is not None:
@@ -230,6 +230,20 @@ class DownloaderService:
                 return ydl.extract_info(url, download=False)
         except DownloadError as exc:
             raise RuntimeError(str(exc)) from exc
+
+    def _build_output_path(self, task: DownloadTask, output_path: Path, info: dict) -> Path:
+        info_for_name = dict(info)
+        if task.mode == DownloadMode.AUDIO:
+            info_for_name["ext"] = "mp3"
+        elif self._ffmpeg_available:
+            info_for_name["ext"] = "mp4"
+        else:
+            info_for_name["ext"] = info.get("ext") or "mp4"
+
+        template = str(output_path / "%(title)s [%(id)s].%(ext)s")
+        with YoutubeDL({"quiet": True, "outtmpl": template}) as ydl:
+            base_path = Path(ydl.prepare_filename(info_for_name))
+        return self._next_available_path(base_path)
 
     def _build_video_formats(self, info: dict) -> list[FormatOption]:
         formats = info.get("formats") or []

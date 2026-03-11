@@ -138,14 +138,36 @@ class FileCollisionTests(unittest.TestCase):
     def test_download_task_uses_non_overwriting_outtmpl_settings(self) -> None:
         service = DownloaderService()
         task = DownloadTask(id="task-1", url="https://example.com/video", mode=DownloadMode.VIDEO)
+        info = {"title": "Film", "id": "abc123", "ext": "mp4"}
 
         with patch("downloader_app.downloader.YoutubeDL") as ydl_mock:
-            service._download_task(task, Path("D:/Pobieracz"), "best", None)
+            ydl_instance = ydl_mock.return_value.__enter__.return_value
+            ydl_instance.prepare_filename.return_value = "D:/Pobieracz/Film [abc123].mp4"
+            service._download_task(task, Path("D:/Pobieracz"), info, "best", None)
 
-        options = ydl_mock.call_args.args[0]
+        options = ydl_mock.call_args_list[-1].args[0]
         self.assertFalse(options["overwrites"])
-        self.assertEqual(options["autonumber_start"], 1)
-        self.assertIn("%(autonumber", options["outtmpl"])
+        self.assertEqual(options["outtmpl"], "D:\\Pobieracz\\Film [abc123].mp4")
+
+    def test_build_output_path_adds_suffix_when_file_exists(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir) / "Film [abc123].mp4"
+            base.touch()
+            task = DownloadTask(id="task-1", url="https://example.com/video", mode=DownloadMode.VIDEO)
+            info = {"title": "Film", "id": "abc123", "ext": "mp4"}
+
+            path = self.service._build_output_path(task, Path(tmpdir), info)
+
+            self.assertEqual(path.name, "Film [abc123] (1).mp4")
+
+    def test_build_output_path_uses_mp3_extension_for_audio(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            task = DownloadTask(id="task-1", url="https://example.com/audio", mode=DownloadMode.AUDIO)
+            info = {"title": "Film", "id": "abc123", "ext": "webm"}
+
+            path = self.service._build_output_path(task, Path(tmpdir), info)
+
+            self.assertEqual(path.name, "Film [abc123].mp3")
 
 
 if __name__ == "__main__":

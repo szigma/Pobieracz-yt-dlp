@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+import platform
 import shutil
+import subprocess
 import threading
 import uuid
 from pathlib import Path
@@ -88,6 +90,45 @@ class DownloaderService:
         task.selected_format_label = selected.label
         return copy.deepcopy(task)
 
+    def is_ffmpeg_available(self) -> bool:
+        return self._ffmpeg_available
+
+    def refresh_ffmpeg_status(self) -> bool:
+        self._ffmpeg_location = self._detect_ffmpeg_location()
+        self._ffmpeg_available = self._ffmpeg_location is not None
+        return self._ffmpeg_available
+
+    def install_ffmpeg(self) -> tuple[bool, str]:
+        if platform.system() != "Windows":
+            return False, "Automatyczna instalacja ffmpeg jest obslugiwana tylko na Windows."
+
+        winget = shutil.which("winget")
+        if winget is None:
+            return False, "Nie znaleziono winget. Zainstaluj ffmpeg recznie: winget install Gyan.FFmpeg.Essentials"
+
+        result = subprocess.run(
+            [
+                winget,
+                "install",
+                "-e",
+                "--id",
+                "Gyan.FFmpeg.Essentials",
+                "--accept-package-agreements",
+                "--accept-source-agreements",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        installed = self.refresh_ffmpeg_status()
+        if result.returncode == 0 and installed:
+            return True, "ffmpeg zostal zainstalowany i jest gotowy do uzycia."
+
+        details = (result.stderr or "").strip() or (result.stdout or "").strip()
+        if not details:
+            details = "Instalacja ffmpeg nie powiodla sie."
+        return False, details
+
     def start_queue(
         self,
         tasks: Iterable[DownloadTask],
@@ -113,8 +154,7 @@ class DownloaderService:
             self._emit(on_task_update, task)
 
             try:
-                self._ffmpeg_location = self._detect_ffmpeg_location()
-                self._ffmpeg_available = self._ffmpeg_location is not None
+                self.refresh_ffmpeg_status()
                 if task.mode == DownloadMode.AUDIO and not self._ffmpeg_available:
                     raise RuntimeError("Tryb MP3 wymaga zainstalowanego ffmpeg w zmiennej PATH.")
 

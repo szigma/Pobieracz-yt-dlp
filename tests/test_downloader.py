@@ -170,5 +170,35 @@ class FileCollisionTests(unittest.TestCase):
             self.assertEqual(path.name, "Film [abc123].mp3")
 
 
+class FfmpegTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.service = DownloaderService()
+
+    def test_refresh_ffmpeg_status_returns_false_when_detector_fails(self) -> None:
+        with patch.object(self.service, "_detect_ffmpeg_location", return_value=None):
+            self.assertFalse(self.service.refresh_ffmpeg_status())
+            self.assertFalse(self.service.is_ffmpeg_available())
+
+    def test_install_ffmpeg_returns_manual_message_when_winget_missing(self) -> None:
+        with patch("downloader_app.downloader.platform.system", return_value="Windows"):
+            with patch("downloader_app.downloader.shutil.which", return_value=None):
+                success, message = self.service.install_ffmpeg()
+
+        self.assertFalse(success)
+        self.assertIn("winget install Gyan.FFmpeg.Essentials", message)
+
+    def test_install_ffmpeg_reports_success_when_command_and_refresh_succeed(self) -> None:
+        completed = type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+        with patch("downloader_app.downloader.platform.system", return_value="Windows"):
+            with patch("downloader_app.downloader.shutil.which", return_value="C:/Windows/System32/winget.exe"):
+                with patch("downloader_app.downloader.subprocess.run", return_value=completed):
+                    with patch.object(self.service, "refresh_ffmpeg_status", return_value=True):
+                        self.service._ffmpeg_available = True
+                        success, message = self.service.install_ffmpeg()
+
+        self.assertTrue(success)
+        self.assertIn("ffmpeg zostal zainstalowany", message)
+
+
 if __name__ == "__main__":
     unittest.main()

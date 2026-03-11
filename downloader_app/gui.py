@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import platform
 import queue
 import threading
 import tkinter as tk
@@ -26,10 +27,13 @@ class DownloaderApp:
         self.mode_var = tk.StringVar(value=DownloadMode.VIDEO.value)
         self.output_dir_var = tk.StringVar(value=str(Path.home() / "Downloads"))
         self.status_var = tk.StringVar(value="Wklej linki i kliknij Analizuj.")
+        self.ffmpeg_status_var = tk.StringVar()
         self.selected_task_id: Optional[str] = None
         self.format_lookup: dict[str, str] = {}
+        self.ffmpeg_install_in_progress = False
 
         self._build_ui()
+        self._refresh_ffmpeg_status()
         self.root.after(150, self._process_queue)
 
     def _build_ui(self) -> None:
@@ -76,8 +80,19 @@ class DownloaderApp:
             row=1, column=2, sticky="ew", pady=(12, 0)
         )
 
+        ffmpeg_frame = ttk.Frame(options_frame)
+        ffmpeg_frame.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(16, 0))
+        ffmpeg_frame.columnconfigure(0, weight=1)
+        ttk.Label(ffmpeg_frame, textvariable=self.ffmpeg_status_var).grid(row=0, column=0, sticky="w")
+        self.install_ffmpeg_button = ttk.Button(
+            ffmpeg_frame,
+            text="Zainstaluj ffmpeg",
+            command=self._install_ffmpeg,
+        )
+        self.install_ffmpeg_button.grid(row=0, column=1, sticky="e", padx=(8, 0))
+
         buttons = ttk.Frame(options_frame)
-        buttons.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(16, 0))
+        buttons.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(16, 0))
         buttons.columnconfigure((0, 1, 2), weight=1)
 
         self.analyze_button = ttk.Button(buttons, text="Analizuj linki", command=self._analyze_urls)
@@ -205,6 +220,29 @@ class DownloaderApp:
         self.service.cancel_current()
         self.status_var.set("Anulowanie bieżącego pobierania...")
 
+    def _install_ffmpeg(self) -> None:
+        if self.ffmpeg_install_in_progress:
+            return
+
+        self.ffmpeg_install_in_progress = True
+        self.install_ffmpeg_button.configure(state="disabled")
+        self.status_var.set("Instalowanie ffmpeg...")
+        threading.Thread(target=self._run_ffmpeg_install, daemon=True).start()
+
+    def _run_ffmpeg_install(self) -> None:
+        success, message = self.service.install_ffmpeg()
+        self.root.after(0, lambda: self._on_ffmpeg_install_finished(success, message))
+
+    def _on_ffmpeg_install_finished(self, success: bool, message: str) -> None:
+        self.ffmpeg_install_in_progress = False
+        self._refresh_ffmpeg_status()
+        if success:
+            self.status_var.set("ffmpeg jest gotowy do uzycia.")
+            messagebox.showinfo("ffmpeg", message)
+        else:
+            self.status_var.set("Instalacja ffmpeg nie powiodla sie.")
+            messagebox.showwarning("ffmpeg", message)
+
     def _on_mode_changed(self) -> None:
         if self.tasks:
             self.status_var.set("Po zmianie trybu ponownie przeanalizuj linki.")
@@ -290,6 +328,27 @@ class DownloaderApp:
         self.analyze_button.configure(state="disabled" if busy else "normal")
         self.start_button.configure(state="disabled" if busy else "normal")
         self.cancel_button.configure(state="normal" if busy else "disabled")
+
+        if self.ffmpeg_install_in_progress:
+            self.install_ffmpeg_button.configure(state="disabled")
+        else:
+            self._refresh_ffmpeg_status()
+
+    def _refresh_ffmpeg_status(self) -> None:
+        available = self.service.refresh_ffmpeg_status()
+        self.ffmpeg_status_var.set("ffmpeg: zainstalowany" if available else "ffmpeg: brak")
+
+        if self._can_install_ffmpeg():
+            self.install_ffmpeg_button.grid()
+            self.install_ffmpeg_button.configure(
+                state="disabled" if available or self.ffmpeg_install_in_progress else "normal"
+            )
+        else:
+            self.install_ffmpeg_button.grid_remove()
+
+    @staticmethod
+    def _can_install_ffmpeg() -> bool:
+        return platform.system() == "Windows"
 
 
 def run() -> None:

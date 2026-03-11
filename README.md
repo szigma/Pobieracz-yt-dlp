@@ -13,7 +13,9 @@ Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linkow naraz 
 - kolejkowanie pobran wykonywanych po kolei,
 - automatyczne numerowanie plikow przy konflikcie nazw,
 - osobna obsluga bledow dla kazdego linku,
-- informacja, kiedy wybrana jakosc wymaga `ffmpeg`.
+- informacja, kiedy wybrana jakosc wymaga `ffmpeg`,
+- wskaznik statusu `ffmpeg` w aplikacji,
+- przycisk automatycznej instalacji `ffmpeg` na Windows.
 
 ## Wymagania
 
@@ -60,6 +62,16 @@ python3 -m downloader_app
 ## Uruchomienie gotowej aplikacji na Windows
 
 Jesli korzystasz z gotowego wydania, pobierz `Pobieracz-yt-dlp.exe` z sekcji Releases i uruchom plik bez instalowania Pythona.
+
+## ffmpeg w aplikacji
+
+Aplikacja sprawdza przy starcie, czy `ffmpeg` jest dostepny.
+
+- jesli `ffmpeg` jest zainstalowany, zobaczysz status `ffmpeg: zainstalowany`,
+- jesli go brakuje, zobaczysz status `ffmpeg: brak`,
+- na Windows pojawi sie przycisk `Zainstaluj ffmpeg`, ktory probuje wykonac instalacje przez `winget`.
+
+Po udanej instalacji status w aplikacji odswieza sie bez restartu programu.
 
 ## Instalacja ffmpeg
 

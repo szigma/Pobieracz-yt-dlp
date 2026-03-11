@@ -30,14 +30,8 @@ pip install -r requirements.txt
 ## Uruchomienie
 
 ```powershell
-cd D:\Pobieracz
+cd "Ścieżka"
 python -m downloader_app
-```
-
-Albo bez wchodzenia do katalogu projektu:
-
-```powershell
-& "C:\Users\groco\AppData\Local\Programs\Python\Python312\python.exe" "D:\Pobieracz\run_app.py"
 ```
 
 ## Testy

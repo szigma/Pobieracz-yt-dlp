@@ -1,25 +1,33 @@
 # Pobieracz wideo i audio
 
-Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linków naraz z użyciem `yt-dlp`.
+Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linkow naraz z uzyciem `yt-dlp`.
 
 ## Funkcje
 
-- wklejanie wielu linków, po jednym w linii,
-- analiza linków przed pobraniem,
-- wybór folderu docelowego,
+- wklejanie wielu linkow, po jednym w linii,
+- analiza linkow przed pobraniem,
+- wybor folderu docelowego,
 - tryb `MP4` albo `MP3`,
-- domyślny wybór najlepszej jakości,
-- ręczna zmiana jakości dla wybranego filmu,
-- kolejka pobrań wykonywana po kolei,
-- osobna obsługa błędów dla każdego linku,
-- czytelna informacja, kiedy wybrana jakość wymaga `ffmpeg`.
+- domyslny wybor najlepszej jakosci,
+- reczna zmiana jakosci dla wybranego filmu,
+- kolejkowanie pobran wykonywanych po kolei,
+- automatyczne numerowanie plikow przy konflikcie nazw,
+- osobna obsluga bledow dla kazdego linku,
+- informacja, kiedy wybrana jakosc wymaga `ffmpeg`.
 
 ## Wymagania
 
-- Python 3.11+,
-- `ffmpeg` w `PATH`, jeśli chcesz eksportować do `MP3` lub łączyć osobne strumienie obrazu i dźwięku w części filmów.
+- Python 3.11 lub nowszy,
+- `ffmpeg` w `PATH`, jesli chcesz eksportowac do `MP3` albo laczyc osobne strumienie obrazu i dzwieku.
 
 ## Instalacja
+
+1. Sklonuj repozytorium albo pobierz kod z GitHuba.
+2. Przejdz do katalogu projektu.
+3. Utworz i aktywuj wirtualne srodowisko.
+4. Zainstaluj zaleznosci.
+
+### Windows PowerShell
 
 ```powershell
 python -m venv .venv
@@ -27,15 +35,47 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Uruchomienie
+### macOS / Linux
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Uruchomienie z kodu
+
+### Windows PowerShell
 
 ```powershell
-cd "Ścieżka"
 python -m downloader_app
 ```
 
+### macOS / Linux
+
+```bash
+python3 -m downloader_app
+```
+
+## Uruchomienie gotowej aplikacji na Windows
+
+Jesli korzystasz z gotowego wydania, pobierz `Pobieracz-yt-dlp.exe` z sekcji Releases i uruchom plik bez instalowania Pythona.
+
 ## Testy
+
+### Windows PowerShell
 
 ```powershell
 python -m unittest discover -s tests
 ```
+
+### macOS / Linux
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+## Uwagi
+
+- Niektore serwisy moga wymagac `ffmpeg`, nawet przy pobieraniu wideo.
+- Jesli plik o tej samej nazwie juz istnieje, aplikacja zapisze nowy plik z dopiskiem ` (1)`, ` (2)` itd.

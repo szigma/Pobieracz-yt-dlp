@@ -109,6 +109,25 @@ class FormatSelectionTests(unittest.TestCase):
 
         self.assertEqual(selector, "http-950/http-632")
 
+    def test_selected_format_selector_prefers_audio_safe_fallbacks(self) -> None:
+        task = DownloadTask(id="task-2", url="https://example.com", mode=DownloadMode.VIDEO)
+        task.available_formats = self.service._build_video_formats(
+            {
+                "formats": [
+                    {"format_id": "137", "ext": "mp4", "height": 1080, "vcodec": "avc1", "acodec": "none"},
+                    {"format_id": "22", "ext": "mp4", "height": 720, "vcodec": "avc1", "acodec": "mp4a"},
+                ]
+            }
+        )
+        self.service._tasks[task.id] = task
+        selected = next(option for option in task.available_formats if option.id == "137")
+
+        selector = self.service._build_selected_format_selector(task, selected)
+
+        self.assertIn("137+bestaudio[ext=m4a]", selector)
+        self.assertIn("22", selector)
+        self.assertNotEqual(selector, "137")
+
 
 class FileCollisionTests(unittest.TestCase):
     def setUp(self) -> None:

@@ -236,7 +236,7 @@ class DownloaderService:
         selected = next((item for item in task.available_formats if item.id == task.selected_format), None)
         if selected is None:
             raise RuntimeError("Wybrana jakość nie jest już dostępna w pamięci aplikacji.")
-        return selected.selector
+        return self._build_selected_format_selector(task, selected)
 
     def _ensure_selected_format_available(self, task: DownloadTask, info: dict) -> None:
         current_ids = {str(fmt.get("format_id")) for fmt in info.get("formats", []) if fmt.get("format_id")}
@@ -412,3 +412,25 @@ class DownloaderService:
             if not candidate.exists():
                 return candidate
             counter += 1
+
+    def _build_selected_format_selector(self, task: DownloadTask, selected: FormatOption) -> str:
+        if not selected.requires_ffmpeg:
+            return selected.selector
+
+        same_or_lower_progressive = [
+            option.selector
+            for option in task.available_formats
+            if not option.requires_ffmpeg
+            and option.height is not None
+            and selected.height is not None
+            and option.height <= selected.height
+        ]
+        fallback_parts = [
+            f"{selected.availability_id}+bestaudio[ext=m4a]",
+            f"{selected.availability_id}+bestaudio",
+            *same_or_lower_progressive,
+            "best[ext=mp4][acodec!=none]",
+            "best[acodec!=none]",
+            "best",
+        ]
+        return "/".join(dict.fromkeys(fallback_parts))

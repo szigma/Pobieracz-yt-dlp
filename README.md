@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![GitHub release](https://img.shields.io/github/v/release/szigma/Pobieracz-yt-dlp)
 
-Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linkow naraz z uzyciem `yt-dlp`.
+Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linków naraz z użyciem `yt-dlp`.
 
 ![Podglad aplikacji](assets/app-preview.png)
 

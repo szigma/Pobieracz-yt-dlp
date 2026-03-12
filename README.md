@@ -10,8 +10,8 @@ Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linków naraz
 
 ## Pobieranie
 
-[![Windows](https://img.shields.io/badge/-Windows-blue.svg?style=for-the-badge&logo=windows)](https://github.com/szigma/Pobieracz-yt-dlp/releases/latest/download/Pobieracz-yt-dlp-windows.exe)
-[![Linux](https://img.shields.io/badge/-Linux-red.svg?style=for-the-badge&logo=linux)](https://github.com/szigma/Pobieracz-yt-dlp/releases/latest/download/Pobieracz-yt-dlp-linux.tar.gz)
+[![Windows](https://img.shields.io/badge/Windows-blue?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/szigma/Pobieracz-yt-dlp/releases/latest/download/Pobieracz-yt-dlp-windows.exe)
+[![Linux](https://img.shields.io/badge/Linux-red?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/szigma/Pobieracz-yt-dlp/releases/latest/download/Pobieracz-yt-dlp-linux.tar.gz)
 [![Wszystkie wersje](https://img.shields.io/badge/-Wszystkie_wersje-lightgrey.svg?style=for-the-badge)](https://github.com/szigma/Pobieracz-yt-dlp/releases)
 
 Pobierz najnowszą wersję aplikacji bezpośrednio z GitHub Releases:

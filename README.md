@@ -10,18 +10,14 @@ Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linkow naraz 
 
 ## Pobieranie
 
-Najprostszym sposobem uruchomienia aplikacji jest pobranie gotowej wersji z sekcji **Releases** na GitHubie.
+[![Windows](https://img.shields.io/badge/-Windows-blue.svg?style=for-the-badge&logo=windows)](https://github.com/szigma/Pobieracz-yt-dlp/releases/latest/download/Pobieracz-yt-dlp-windows.exe)
+[![Linux](https://img.shields.io/badge/-Linux-red.svg?style=for-the-badge&logo=linux)](https://github.com/szigma/Pobieracz-yt-dlp/releases/latest/download/Pobieracz-yt-dlp-linux.tar.gz)
+[![Wszystkie wersje](https://img.shields.io/badge/-Wszystkie_wersje-lightgrey.svg?style=for-the-badge)](https://github.com/szigma/Pobieracz-yt-dlp/releases)
 
-Dostępne pliki:
+Pobierz najnowszą wersję aplikacji bezpośrednio z GitHub Releases:
 
-- **Windows** – `Pobieracz-yt-dlp-windows.exe`  
-  Wystarczy pobrać plik i uruchomić aplikację.
-
-- **Linux** – `Pobieracz-yt-dlp-linux.tar.gz`  
-  Pobierz archiwum, rozpakuj je i uruchom aplikację z katalogu projektu.
-
-Wszystkie wersje programu znajdziesz tutaj:  
-https://github.com/szigma/Pobieracz-yt-dlp/releases
+- **Windows** — gotowy plik `.exe`
+- **Linux** — archiwum `.tar.gz`
 
 ## Wydania
 

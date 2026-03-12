@@ -2,6 +2,13 @@
 
 Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linkow naraz z uzyciem `yt-dlp`.
 
+## Wydania
+
+Od wersji `v1.0.1` projekt ma dwa osobne artefakty releasu:
+
+- `Pobieracz-yt-dlp-windows.exe` dla Windows,
+- `Pobieracz-yt-dlp-linux.tar.gz` dla Linux.
+
 ## Funkcje
 
 - wklejanie wielu linkow, po jednym w linii,
@@ -61,7 +68,20 @@ python3 -m downloader_app
 
 ## Uruchomienie gotowej aplikacji na Windows
 
-Jesli korzystasz z gotowego wydania, pobierz `Pobieracz-yt-dlp.exe` z sekcji Releases i uruchom plik bez instalowania Pythona.
+Jesli korzystasz z gotowego wydania, pobierz `Pobieracz-yt-dlp-windows.exe` z sekcji Releases i uruchom plik bez instalowania Pythona.
+
+## Uruchomienie gotowej paczki na Linux
+
+Pobierz `Pobieracz-yt-dlp-linux.tar.gz` z sekcji Releases, rozpakuj archiwum i uruchom aplikacje z katalogu projektu.
+
+```bash
+tar -xzf Pobieracz-yt-dlp-linux.tar.gz
+cd Pobieracz-yt-dlp
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m downloader_app
+```
 
 ## ffmpeg w aplikacji
 
@@ -135,6 +155,8 @@ Sprawdzenie:
 ffmpeg -version
 ```
 
+Na Linux `ffmpeg` jest wymagany do poprawnego dzwieku dla trybu `Auto` i recznego wyboru jakosci, jesli serwis rozdziela obraz i dzwiek.
+
 ## Testy
 
 ### Windows PowerShell
@@ -153,3 +175,4 @@ python3 -m unittest discover -s tests
 
 - Niektore serwisy moga wymagac `ffmpeg`, nawet przy pobieraniu wideo.
 - Jesli plik o tej samej nazwie juz istnieje, aplikacja zapisze nowy plik z dopiskiem ` (1)`, ` (2)` itd.
+- Na Linux aplikacja ma priorytetowo wybierac formaty z dzwiekiem; jesli wybrana jakosc nie da sie zapisac z audio, downloader powinien zejsc do bezpiecznego wariantu z dzwiekiem zamiast zapisywac sam obraz.

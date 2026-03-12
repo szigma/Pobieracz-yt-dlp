@@ -129,6 +129,35 @@ class FormatSelectionTests(unittest.TestCase):
         self.assertIn("22", selector)
         self.assertNotEqual(selector, "137")
 
+    def test_linux_manual_selector_does_not_fallback_to_video_only(self) -> None:
+        linux_service = DownloaderService()
+        linux_service._platform = "Linux"
+        task = DownloadTask(id="task-3", url="https://example.com", mode=DownloadMode.VIDEO)
+        task.available_formats = linux_service._build_video_formats(
+            {
+                "formats": [
+                    {"format_id": "137", "ext": "mp4", "height": 1080, "vcodec": "avc1", "acodec": "none"},
+                    {"format_id": "22", "ext": "mp4", "height": 720, "vcodec": "avc1", "acodec": "mp4a"},
+                ]
+            }
+        )
+        selected = next(option for option in task.available_formats if option.id == "137")
+
+        selector = linux_service._build_selected_format_selector(task, selected)
+
+        self.assertFalse(selector.endswith("/best"))
+        self.assertIn("best[acodec!=none]", selector)
+
+    def test_linux_auto_selector_requires_audio(self) -> None:
+        linux_service = DownloaderService()
+        linux_service._platform = "Linux"
+        linux_service._ffmpeg_available = False
+
+        task = DownloadTask(id="task-4", url="https://example.com", mode=DownloadMode.VIDEO)
+        selector = linux_service._resolve_format_selector(task)
+
+        self.assertEqual(selector, "best[ext=mp4][acodec!=none]/best[acodec!=none]")
+
 
 class FileCollisionTests(unittest.TestCase):
     def setUp(self) -> None:

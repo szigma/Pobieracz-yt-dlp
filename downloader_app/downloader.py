@@ -35,6 +35,7 @@ class DownloaderService:
     def __init__(self) -> None:
         self._tasks: dict[str, DownloadTask] = {}
         self._cancel_event = threading.Event()
+        self._platform = platform.system()
         self._ffmpeg_location = self._detect_ffmpeg_location()
         self._ffmpeg_available = self._ffmpeg_location is not None
 
@@ -230,7 +231,14 @@ class DownloaderService:
                     "best[vcodec!=none]"
                 )
             if not self._ffmpeg_available:
-                return "best[ext=mp4][acodec!=none]/best[acodec!=none]/best"
+                return "best[ext=mp4][acodec!=none]/best[acodec!=none]"
+            if self._is_linux():
+                return (
+                    "bestvideo[ext=mp4]+bestaudio[ext=m4a]/"
+                    "bestvideo+bestaudio/"
+                    "best[ext=mp4][acodec!=none]/"
+                    "best[acodec!=none]"
+                )
             return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best"
 
         selected = next((item for item in task.available_formats if item.id == task.selected_format), None)
@@ -418,11 +426,14 @@ class DownloaderService:
             return selected.selector
 
         if selected.height is None:
-            return (
+            selector = (
                 f"{selected.availability_id}+bestaudio[ext=m4a]/"
                 f"{selected.availability_id}+bestaudio/"
-                "best[ext=mp4][acodec!=none]/best[acodec!=none]/best"
+                "best[ext=mp4][acodec!=none]/best[acodec!=none]"
             )
+            if not self._is_linux():
+                selector = f"{selector}/best"
+            return selector
 
         same_or_lower_progressive = [
             option.selector
@@ -441,6 +452,10 @@ class DownloaderService:
             f"best[height<={selected.height}][acodec!=none]",
             "best[ext=mp4][acodec!=none]",
             "best[acodec!=none]",
-            "best",
         ]
+        if not self._is_linux():
+            fallback_parts.append("best")
         return "/".join(dict.fromkeys(fallback_parts))
+
+    def _is_linux(self) -> bool:
+        return self._platform == "Linux"

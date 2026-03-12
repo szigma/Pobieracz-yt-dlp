@@ -158,6 +158,46 @@ class FormatSelectionTests(unittest.TestCase):
 
         self.assertEqual(selector, "best[ext=mp4][acodec!=none]/best[acodec!=none]")
 
+    def test_linux_audio_safe_retry_selector_prefers_progressive_with_audio(self) -> None:
+        linux_service = DownloaderService()
+        linux_service._platform = "Linux"
+        task = DownloadTask(id="task-5", url="https://example.com", mode=DownloadMode.VIDEO)
+        task.available_formats = linux_service._build_video_formats(
+            {
+                "formats": [
+                    {"format_id": "137", "ext": "mp4", "height": 1080, "vcodec": "avc1", "acodec": "none"},
+                    {"format_id": "22", "ext": "mp4", "height": 720, "vcodec": "avc1", "acodec": "mp4a"},
+                ]
+            }
+        )
+        task.selected_format = "137"
+
+        selector = linux_service._build_linux_audio_safe_retry_selector(task)
+
+        self.assertTrue(selector.startswith("22"))
+        self.assertNotIn("/bestvideo", selector)
+
+
+class LinuxAudioGuardTests(unittest.TestCase):
+    def test_linux_retries_when_first_file_has_no_audio(self) -> None:
+        service = DownloaderService()
+        service._platform = "Linux"
+        task = DownloadTask(id="task-linux", url="https://example.com/video", mode=DownloadMode.VIDEO)
+        output_dir = Path("D:/Pobieracz")
+        info = {"title": "Film", "id": "abc123", "ext": "mp4"}
+        final_path = output_dir / "Film [abc123].mp4"
+
+        with patch.object(service, "_file_has_audio_track", side_effect=[False, True]):
+            with patch.object(service, "_build_linux_audio_safe_retry_selector", return_value="safe-selector"):
+                with patch.object(service, "_download_task", side_effect=[final_path, final_path]) as download_mock:
+                    with patch.object(Path, "exists", return_value=True):
+                        with patch.object(Path, "unlink") as unlink_mock:
+                            service._ensure_linux_video_has_audio(task, output_dir, info, final_path, None)
+
+        self.assertEqual(download_mock.call_count, 1)
+        self.assertEqual(download_mock.call_args.args[3], "safe-selector")
+        unlink_mock.assert_called_once()
+
 
 class FileCollisionTests(unittest.TestCase):
     def setUp(self) -> None:

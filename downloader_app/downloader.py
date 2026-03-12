@@ -170,7 +170,9 @@ class DownloaderService:
                         )
 
                 selector = self._resolve_download_selector(task, info)
-                self._download_task(task, output_path, info, selector, on_task_update)
+                final_path = self._download_task(task, output_path, info, selector, on_task_update)
+                if task.mode == DownloadMode.VIDEO and self._is_linux():
+                    self._ensure_linux_video_has_audio(task, output_path, info, final_path, on_task_update)
                 if self._cancel_event.is_set():
                     task.status = "Cancelled"
                 else:
@@ -191,8 +193,9 @@ class DownloaderService:
         info: dict,
         selector: str,
         on_task_update: Optional[TaskCallback],
-    ) -> None:
-        outtmpl = str(self._build_output_path(task, output_path, info))
+    ) -> Path:
+        final_path = self._build_output_path(task, output_path, info)
+        outtmpl = str(final_path)
         options = {
             "outtmpl": outtmpl,
             "noplaylist": True,
@@ -220,6 +223,7 @@ class DownloaderService:
 
         with YoutubeDL(options) as ydl:
             ydl.download([task.url])
+        return final_path
 
     def _resolve_format_selector(self, task: DownloadTask) -> str:
         if task.selected_format == "auto":
@@ -456,6 +460,96 @@ class DownloaderService:
         if not self._is_linux():
             fallback_parts.append("best")
         return "/".join(dict.fromkeys(fallback_parts))
+
+    def _ensure_linux_video_has_audio(
+        self,
+        task: DownloadTask,
+        output_path: Path,
+        info: dict,
+        final_path: Path,
+        on_task_update: Optional[TaskCallback],
+    ) -> None:
+        if not final_path.exists() or self._file_has_audio_track(final_path):
+            return
+
+        retry_selector = self._build_linux_audio_safe_retry_selector(task)
+        if not retry_selector:
+            raise RuntimeError(
+                "Linux pobral plik bez dzwieku i nie znaleziono bezpiecznego formatu awaryjnego z audio."
+            )
+
+        final_path.unlink(missing_ok=True)
+        task.status = "Retrying audio-safe format"
+        task.progress = 0.0
+        task.error_message = ""
+        self._emit(on_task_update, task)
+        retried_path = self._download_task(task, output_path, info, retry_selector, on_task_update)
+        if not retried_path.exists() or not self._file_has_audio_track(retried_path):
+            raise RuntimeError(
+                "Linux nie mogl zapisac pliku z dzwiekiem. Sprawdz ffmpeg i sprobuj nizszej jakosci albo Auto."
+            )
+
+    def _build_linux_audio_safe_retry_selector(self, task: DownloadTask) -> str:
+        if task.selected_format == "auto":
+            return "best[ext=mp4][acodec!=none]/best[acodec!=none]"
+
+        selected = next((item for item in task.available_formats if item.id == task.selected_format), None)
+        if selected is None or selected.height is None:
+            return "best[ext=mp4][acodec!=none]/best[acodec!=none]"
+
+        same_or_lower_progressive = [
+            option.selector
+            for option in task.available_formats
+            if not option.requires_ffmpeg
+            and option.height is not None
+            and option.height <= selected.height
+        ]
+        retry_parts = [
+            *same_or_lower_progressive,
+            f"best[height<={selected.height}][ext=mp4][acodec!=none]",
+            f"best[height<={selected.height}][acodec!=none]",
+            "best[ext=mp4][acodec!=none]",
+            "best[acodec!=none]",
+        ]
+        return "/".join(dict.fromkeys(retry_parts))
+
+    def _file_has_audio_track(self, path: Path) -> bool:
+        ffprobe_command = self._resolve_ffprobe_command()
+        if ffprobe_command is None:
+            return True
+
+        result = subprocess.run(
+            [
+                ffprobe_command,
+                "-v",
+                "error",
+                "-select_streams",
+                "a",
+                "-show_entries",
+                "stream=codec_type",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                str(path),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return result.returncode == 0 and bool(result.stdout.strip())
+
+    def _resolve_ffprobe_command(self) -> str | None:
+        ffprobe = shutil.which("ffprobe")
+        if ffprobe is not None:
+            return ffprobe
+
+        if self._ffmpeg_location is None:
+            return None
+
+        binary_name = "ffprobe.exe" if platform.system() == "Windows" else "ffprobe"
+        candidate = Path(self._ffmpeg_location) / binary_name
+        if candidate.exists():
+            return str(candidate)
+        return None
 
     def _is_linux(self) -> bool:
         return self._platform == "Linux"

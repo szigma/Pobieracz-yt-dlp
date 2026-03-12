@@ -178,3 +178,11 @@ python3 -m unittest discover -s tests
 - Niektore serwisy moga wymagac `ffmpeg`, nawet przy pobieraniu wideo.
 - Jesli plik o tej samej nazwie juz istnieje, aplikacja zapisze nowy plik z dopiskiem ` (1)`, ` (2)` itd.
 - Na Linux aplikacja ma priorytetowo wybierac formaty z dzwiekiem; jesli wybrana jakosc nie da sie zapisac z audio, downloader powinien zejsc do bezpiecznego wariantu z dzwiekiem zamiast zapisywac sam obraz.
+
+## Disclaimer
+
+This project is intended for educational purposes and for downloading
+content you have permission to download.
+
+Users are responsible for complying with the terms of service of the
+websites they use.

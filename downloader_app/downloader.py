@@ -417,18 +417,28 @@ class DownloaderService:
         if not selected.requires_ffmpeg:
             return selected.selector
 
+        if selected.height is None:
+            return (
+                f"{selected.availability_id}+bestaudio[ext=m4a]/"
+                f"{selected.availability_id}+bestaudio/"
+                "best[ext=mp4][acodec!=none]/best[acodec!=none]/best"
+            )
+
         same_or_lower_progressive = [
             option.selector
             for option in task.available_formats
             if not option.requires_ffmpeg
             and option.height is not None
-            and selected.height is not None
             and option.height <= selected.height
         ]
         fallback_parts = [
+            f"bestvideo[height<={selected.height}][ext=mp4]+bestaudio[ext=m4a]",
+            f"bestvideo[height<={selected.height}]+bestaudio",
             f"{selected.availability_id}+bestaudio[ext=m4a]",
             f"{selected.availability_id}+bestaudio",
             *same_or_lower_progressive,
+            f"best[height<={selected.height}][ext=mp4][acodec!=none]",
+            f"best[height<={selected.height}][acodec!=none]",
             "best[ext=mp4][acodec!=none]",
             "best[acodec!=none]",
             "best",

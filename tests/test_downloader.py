@@ -124,6 +124,7 @@ class FormatSelectionTests(unittest.TestCase):
 
         selector = self.service._build_selected_format_selector(task, selected)
 
+        self.assertIn("bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]", selector)
         self.assertIn("137+bestaudio[ext=m4a]", selector)
         self.assertIn("22", selector)
         self.assertNotEqual(selector, "137")

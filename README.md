@@ -1,9 +1,9 @@
 # Pobieracz wideo i audio
 
-Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linkow naraz z uzyciem `yt-dlp`.
-
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+
+Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linkow naraz z uzyciem `yt-dlp`.
 
 ![Podglad aplikacji](assets/app-preview.png)
 

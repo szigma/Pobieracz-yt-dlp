@@ -2,10 +2,26 @@
 
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![GitHub release](https://img.shields.io/github/v/release/szigma/Pobieracz-yt-dlp)
 
 Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linkow naraz z uzyciem `yt-dlp`.
 
 ![Podglad aplikacji](assets/app-preview.png)
+
+## Pobieranie
+
+Najprostszym sposobem uruchomienia aplikacji jest pobranie gotowej wersji z sekcji **Releases** na GitHubie.
+
+Dostępne pliki:
+
+- **Windows** – `Pobieracz-yt-dlp-windows.exe`  
+  Wystarczy pobrać plik i uruchomić aplikację.
+
+- **Linux** – `Pobieracz-yt-dlp-linux.tar.gz`  
+  Pobierz archiwum, rozpakuj je i uruchom aplikację z katalogu projektu.
+
+Wszystkie wersje programu znajdziesz tutaj:  
+https://github.com/szigma/Pobieracz-yt-dlp/releases
 
 ## Wydania
 

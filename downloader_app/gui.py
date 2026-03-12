@@ -10,6 +10,7 @@ from typing import Optional
 
 from .downloader import DownloaderService, parse_urls
 from .models import DownloadMode, DownloadTask
+from .settings import AppSettings, load_settings, save_settings
 
 
 class DownloaderApp:
@@ -18,21 +19,29 @@ class DownloaderApp:
         self.root.title("Pobieracz multimediów")
         self.root.geometry("1180x720")
         self.root.minsize(980, 620)
+        self.style = ttk.Style()
 
         self.service = DownloaderService()
+        self.settings = load_settings()
         self.tasks: dict[str, DownloadTask] = {}
         self.message_queue: queue.Queue[DownloadTask] = queue.Queue()
         self.worker_thread: Optional[threading.Thread] = None
 
         self.mode_var = tk.StringVar(value=DownloadMode.VIDEO.value)
-        self.output_dir_var = tk.StringVar(value=str(Path.home() / "Downloads"))
+        self.theme_var = tk.BooleanVar(value=self.settings.dark_mode)
+        default_output_dir = self.settings.output_dir or str(Path.home() / "Downloads")
+        self.output_dir_var = tk.StringVar(value=default_output_dir)
         self.status_var = tk.StringVar(value="Wklej linki i kliknij Analizuj.")
         self.ffmpeg_status_var = tk.StringVar()
         self.selected_task_id: Optional[str] = None
         self.format_lookup: dict[str, str] = {}
         self.ffmpeg_install_in_progress = False
 
+        self.output_dir_var.trace_add("write", self._on_settings_changed)
+        self.theme_var.trace_add("write", self._on_settings_changed)
+
         self._build_ui()
+        self._apply_theme()
         self._refresh_ffmpeg_status()
         self.root.after(150, self._process_queue)
 
@@ -72,6 +81,12 @@ class DownloaderApp:
             variable=self.mode_var,
             command=self._on_mode_changed,
         ).grid(row=0, column=2, sticky="w")
+        ttk.Checkbutton(
+            options_frame,
+            text="Tryb ciemny",
+            variable=self.theme_var,
+            command=self._apply_theme,
+        ).grid(row=0, column=3, sticky="e", padx=(12, 0))
 
         ttk.Label(options_frame, text="Folder zapisu:").grid(row=1, column=0, sticky="w", pady=(12, 0))
         folder_entry = ttk.Entry(options_frame, textvariable=self.output_dir_var)
@@ -142,10 +157,199 @@ class DownloaderApp:
             row=3, column=0, sticky="ew"
         )
 
+    def _apply_theme(self) -> None:
+        palette = self._dark_palette() if self.theme_var.get() else self._light_palette()
+        self.style.theme_use("clam")
+
+        self.root.configure(bg=palette["root_bg"])
+        self.style.configure(".", background=palette["bg"], foreground=palette["fg"])
+        self.style.configure("TFrame", background=palette["bg"])
+        self.style.configure("TLabelframe", background=palette["bg"], foreground=palette["fg"])
+        self.style.configure("TLabelframe.Label", background=palette["bg"], foreground=palette["fg"])
+        self.style.configure("TLabel", background=palette["bg"], foreground=palette["fg"])
+        self.style.configure(
+            "TButton",
+            background=palette["button_bg"],
+            foreground=palette["fg"],
+            bordercolor=palette["border"],
+            focuscolor=palette["accent"],
+            lightcolor=palette["button_bg"],
+            darkcolor=palette["button_bg"],
+        )
+        self.style.map(
+            "TButton",
+            background=[
+                ("pressed", palette["button_active"]),
+                ("active", palette["button_active"]),
+                ("disabled", palette["disabled_bg"]),
+            ],
+            foreground=[("disabled", palette["disabled_fg"])],
+            bordercolor=[("active", palette["accent"]), ("pressed", palette["accent"])],
+            lightcolor=[("active", palette["button_active"]), ("pressed", palette["button_active"])],
+            darkcolor=[("active", palette["button_active"]), ("pressed", palette["button_active"])],
+        )
+        self.style.configure(
+            "TRadiobutton",
+            background=palette["bg"],
+            foreground=palette["fg"],
+            indicatorcolor=palette["bg"],
+            focuscolor=palette["accent"],
+            lightcolor=palette["bg"],
+            darkcolor=palette["bg"],
+        )
+        self.style.map(
+            "TRadiobutton",
+            background=[("active", palette["hover_bg"]), ("selected", palette["selected_bg"])],
+            foreground=[
+                ("disabled", palette["disabled_fg"]),
+                ("active", palette["fg"]),
+                ("selected", palette["selected_fg"]),
+            ],
+            indicatorcolor=[
+                ("selected", palette["accent"]),
+                ("active", palette["hover_bg"]),
+            ],
+            lightcolor=[("active", palette["hover_bg"]), ("selected", palette["selected_bg"])],
+            darkcolor=[("active", palette["hover_bg"]), ("selected", palette["selected_bg"])],
+        )
+        self.style.configure(
+            "TCheckbutton",
+            background=palette["bg"],
+            foreground=palette["fg"],
+            indicatorcolor=palette["bg"],
+            focuscolor=palette["accent"],
+            lightcolor=palette["bg"],
+            darkcolor=palette["bg"],
+        )
+        self.style.map(
+            "TCheckbutton",
+            background=[("active", palette["hover_bg"]), ("selected", palette["selected_bg"])],
+            foreground=[
+                ("disabled", palette["disabled_fg"]),
+                ("active", palette["fg"]),
+                ("selected", palette["selected_fg"]),
+            ],
+            indicatorcolor=[
+                ("selected", palette["accent"]),
+                ("active", palette["hover_bg"]),
+            ],
+            lightcolor=[("active", palette["hover_bg"]), ("selected", palette["selected_bg"])],
+            darkcolor=[("active", palette["hover_bg"]), ("selected", palette["selected_bg"])],
+        )
+        self.style.configure(
+            "TEntry",
+            fieldbackground=palette["input_bg"],
+            foreground=palette["fg"],
+            insertcolor=palette["fg"],
+            bordercolor=palette["border"],
+        )
+        self.style.configure(
+            "TCombobox",
+            fieldbackground=palette["input_bg"],
+            foreground=palette["fg"],
+            arrowcolor=palette["fg"],
+            bordercolor=palette["border"],
+        )
+        self.style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", palette["input_bg"])],
+            foreground=[("readonly", palette["fg"]), ("disabled", palette["disabled_fg"])],
+            arrowcolor=[("active", palette["fg"])],
+        )
+        self.style.configure(
+            "Treeview",
+            background=palette["input_bg"],
+            fieldbackground=palette["input_bg"],
+            foreground=palette["fg"],
+            bordercolor=palette["border"],
+        )
+        self.style.map(
+            "Treeview",
+            background=[("selected", palette["accent"])],
+            foreground=[("selected", palette["selected_fg"])],
+        )
+        self.style.configure(
+            "Treeview.Heading",
+            background=palette["button_bg"],
+            foreground=palette["fg"],
+            bordercolor=palette["border"],
+            lightcolor=palette["button_bg"],
+            darkcolor=palette["button_bg"],
+        )
+        self.style.map(
+            "Treeview.Heading",
+            background=[("active", palette["button_active"]), ("pressed", palette["button_active"])],
+            foreground=[("active", palette["fg"]), ("pressed", palette["fg"])],
+            bordercolor=[("active", palette["accent"]), ("pressed", palette["accent"])],
+            lightcolor=[("active", palette["button_active"]), ("pressed", palette["button_active"])],
+            darkcolor=[("active", palette["button_active"]), ("pressed", palette["button_active"])],
+        )
+
+        self.urls_text.configure(
+            bg=palette["input_bg"],
+            fg=palette["fg"],
+            insertbackground=palette["fg"],
+            selectbackground=palette["accent"],
+            selectforeground=palette["selected_fg"],
+            relief="flat",
+            highlightthickness=1,
+            highlightbackground=palette["border"],
+            highlightcolor=palette["accent"],
+        )
+
+    @staticmethod
+    def _light_palette() -> dict[str, str]:
+        return {
+            "root_bg": "#f0f0f0",
+            "bg": "#f0f0f0",
+            "fg": "#171717",
+            "input_bg": "#ffffff",
+            "button_bg": "#e7e7e7",
+            "button_active": "#dcdcdc",
+            "hover_bg": "#d9e6ff",
+            "selected_bg": "#2f6fed",
+            "border": "#bcbcbc",
+            "accent": "#2f6fed",
+            "selected_fg": "#ffffff",
+            "disabled_bg": "#efefef",
+            "disabled_fg": "#8c8c8c",
+        }
+
+    @staticmethod
+    def _dark_palette() -> dict[str, str]:
+        return {
+            "root_bg": "#14181d",
+            "bg": "#14181d",
+            "fg": "#edf2f7",
+            "input_bg": "#1b222b",
+            "button_bg": "#24303d",
+            "button_active": "#2b3b4a",
+            "hover_bg": "#2a3440",
+            "selected_bg": "#4ea1ff",
+            "border": "#3a4a5d",
+            "accent": "#4ea1ff",
+            "selected_fg": "#f8fbff",
+            "disabled_bg": "#202933",
+            "disabled_fg": "#7f8b99",
+        }
+
     def _choose_output_dir(self) -> None:
         selected = filedialog.askdirectory(initialdir=self.output_dir_var.get() or str(Path.home()))
         if selected:
             self.output_dir_var.set(selected)
+
+    def _on_settings_changed(self, *_args: object) -> None:
+        self._save_settings()
+
+    def _save_settings(self) -> None:
+        self.settings = AppSettings(
+            output_dir=self.output_dir_var.get().strip(),
+            dark_mode=self.theme_var.get(),
+        )
+        try:
+            save_settings(self.settings)
+        except OSError:
+            pass
 
     def _analyze_urls(self) -> None:
         urls = parse_urls(self.urls_text.get("1.0", "end"))

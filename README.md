@@ -179,6 +179,16 @@ python3 -m unittest discover -s tests
 - Jesli plik o tej samej nazwie juz istnieje, aplikacja zapisze nowy plik z dopiskiem ` (1)`, ` (2)` itd.
 - Na Linux aplikacja ma priorytetowo wybierac formaty z dzwiekiem; jesli wybrana jakosc nie da sie zapisac z audio, downloader powinien zejsc do bezpiecznego wariantu z dzwiekiem zamiast zapisywac sam obraz.
 
+## Third-party software
+
+This project uses the following open-source software:
+
+### yt-dlp
+- Repository: https://github.com/yt-dlp/yt-dlp  
+- License: The Unlicense (public domain)
+
+yt-dlp is a powerful command-line program used to download videos and audio from many websites.
+
 ## Disclaimer
 
 This project is intended for educational purposes and for downloading

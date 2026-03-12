@@ -2,6 +2,8 @@
 
 Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linkow naraz z uzyciem `yt-dlp`.
 
+![Podglad aplikacji](assets/app-preview.png)
+
 ## Wydania
 
 Od wersji `v1.0.1` projekt ma dwa osobne artefakty releasu:

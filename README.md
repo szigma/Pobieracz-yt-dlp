@@ -10,14 +10,21 @@ Desktopowa aplikacja w Pythonie do analizowania i pobierania wielu linków naraz
 
 ## Pobieranie
 
-[![Windows](https://img.shields.io/badge/Windows-blue?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/szigma/Pobieracz-yt-dlp/releases/latest/download/Pobieracz-yt-dlp-windows.exe)
-[![Linux](https://img.shields.io/badge/Linux-red?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/szigma/Pobieracz-yt-dlp/releases/latest/download/Pobieracz-yt-dlp-linux.tar.gz)
-[![Wszystkie wersje](https://img.shields.io/badge/-Wszystkie_wersje-lightgrey.svg?style=for-the-badge)](https://github.com/szigma/Pobieracz-yt-dlp/releases)
+<p align="center">
 
-Pobierz najnowszą wersję aplikacji bezpośrednio z GitHub Releases:
+<a href="https://github.com/szigma/Pobieracz-yt-dlp/releases/latest/download/Pobieracz-yt-dlp-windows.exe">
+<img src="https://img.shields.io/badge/Windows-Pobierz-blue?style=for-the-badge&logo=microsoft&logoColor=white">
+</a>
 
-- **Windows** — gotowy plik `.exe`
-- **Linux** — archiwum `.tar.gz`
+<a href="https://github.com/szigma/Pobieracz-yt-dlp/releases/latest/download/Pobieracz-yt-dlp-linux.tar.gz">
+<img src="https://img.shields.io/badge/Linux-Pobierz-red?style=for-the-badge&logo=linux&logoColor=white">
+</a>
+
+<a href="https://github.com/szigma/Pobieracz-yt-dlp/releases">
+<img src="https://img.shields.io/badge/Wszystkie_wersje-Releases-lightgrey?style=for-the-badge&logo=github">
+</a>
+
+</p>
 
 ## Wydania
 

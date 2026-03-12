@@ -73,6 +73,25 @@ class FormatSelectionTests(unittest.TestCase):
         self.assertEqual(options[0].label, "964p mp4")
         self.assertFalse(options[0].requires_ffmpeg)
 
+    def test_build_video_formats_does_not_treat_generic_https_video_only_as_audio(self) -> None:
+        info = {
+            "formats": [
+                {
+                    "format_id": "137",
+                    "ext": "mp4",
+                    "protocol": "https",
+                    "height": 1080,
+                    "vcodec": "avc1",
+                    "acodec": "none",
+                }
+            ]
+        }
+
+        options = self.service._build_video_formats(info)
+
+        self.assertEqual(options[0].label, "1080p mp4 (wymaga ffmpeg)")
+        self.assertTrue(options[0].requires_ffmpeg)
+
     def test_set_selected_format_updates_label(self) -> None:
         task = DownloadTask(id="task-1", url="https://example.com", mode=DownloadMode.VIDEO)
         task.available_formats = self.service._build_video_formats(

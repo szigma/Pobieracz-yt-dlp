@@ -401,14 +401,27 @@ class DownloaderService:
     @staticmethod
     def _format_has_video(fmt: dict) -> bool:
         vcodec = fmt.get("vcodec")
-        protocol = (fmt.get("protocol") or "").lower()
-        return vcodec not in (None, "none") or protocol in {"http", "https"}
+        return vcodec not in (None, "none") or DownloaderService._is_progressive_http_format(fmt)
 
     @staticmethod
     def _format_has_audio(fmt: dict) -> bool:
         acodec = fmt.get("acodec")
+        return acodec not in (None, "none") or DownloaderService._is_progressive_http_format(fmt)
+
+    @staticmethod
+    def _is_progressive_http_format(fmt: dict) -> bool:
         protocol = (fmt.get("protocol") or "").lower()
-        return acodec not in (None, "none") or protocol in {"http", "https"}
+        format_id = str(fmt.get("format_id") or "").lower()
+        vcodec = fmt.get("vcodec")
+        acodec = fmt.get("acodec")
+        ext = (fmt.get("ext") or "").lower()
+        return (
+            protocol in {"http", "https"}
+            and ext == "mp4"
+            and format_id.startswith("http-")
+            and vcodec in (None, "none")
+            and acodec in (None, "none")
+        )
 
     @staticmethod
     def _next_available_path(path: Path) -> Path:

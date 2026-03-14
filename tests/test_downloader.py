@@ -1,3 +1,4 @@
+import subprocess
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -306,6 +307,53 @@ class FfmpegTests(unittest.TestCase):
 
         self.assertTrue(success)
         self.assertIn("ffmpeg zostal zainstalowany", message)
+
+
+class AnalyzeUrlsStateTests(unittest.TestCase):
+    def test_analyze_urls_clears_previous_tasks(self) -> None:
+        service = DownloaderService()
+        service._tasks["old"] = DownloadTask(id="old", url="https://old.example", mode=DownloadMode.VIDEO)
+
+        with patch.object(service, "_extract_info", return_value={"title": "Nowy", "formats": []}):
+            tasks = service.analyze_urls(["https://example.com/new"], DownloadMode.VIDEO)
+
+        self.assertEqual(len(tasks), 1)
+        self.assertNotIn("old", service._tasks)
+        self.assertIn(tasks[0].id, service._tasks)
+
+
+class QueuePerformanceTests(unittest.TestCase):
+    def test_start_queue_refreshes_ffmpeg_status_once_per_queue(self) -> None:
+        service = DownloaderService()
+        first = DownloadTask(id="task-q1", url="https://example.com/video-1", mode=DownloadMode.VIDEO)
+        second = DownloadTask(id="task-q2", url="https://example.com/video-2", mode=DownloadMode.VIDEO)
+        service._tasks[first.id] = first
+        service._tasks[second.id] = second
+
+        info = {"title": "Film", "id": "1", "ext": "mp4", "formats": []}
+        with patch.object(service, "refresh_ffmpeg_status", return_value=True) as refresh_mock:
+            with patch.object(service, "_extract_info", return_value=info):
+                with patch.object(service, "_resolve_download_selector", return_value="best"):
+                    with patch.object(service, "_download_task", return_value=Path("D:/Pobieracz/Film [1].mp4")):
+                        service.start_queue([first, second], "D:/Pobieracz", on_task_update=None)
+
+        self.assertEqual(refresh_mock.call_count, 1)
+
+
+class FfmpegTimeoutTests(unittest.TestCase):
+    def test_install_ffmpeg_returns_timeout_message_when_winget_hangs(self) -> None:
+        service = DownloaderService()
+
+        with patch("downloader_app.downloader.platform.system", return_value="Windows"):
+            with patch("downloader_app.downloader.shutil.which", return_value="C:/Windows/System32/winget.exe"):
+                with patch(
+                    "downloader_app.downloader.subprocess.run",
+                    side_effect=subprocess.TimeoutExpired(cmd="winget", timeout=300),
+                ):
+                    success, message = service.install_ffmpeg()
+
+        self.assertFalse(success)
+        self.assertIn("limit czasu", message)
 
 
 if __name__ == "__main__":

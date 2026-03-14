@@ -45,6 +45,7 @@ class DownloaderService:
         mode: DownloadMode,
         on_task_update: Optional[TaskCallback] = None,
     ) -> list[DownloadTask]:
+        self._tasks.clear()
         tasks: list[DownloadTask] = []
         for url in urls:
             task = DownloadTask(id=str(uuid.uuid4()), url=url, mode=mode, status="Analyzing")
@@ -107,20 +108,26 @@ class DownloaderService:
         if winget is None:
             return False, "Nie znaleziono winget. Zainstaluj ffmpeg recznie: winget install Gyan.FFmpeg.Essentials"
 
-        result = subprocess.run(
-            [
-                winget,
-                "install",
-                "-e",
-                "--id",
-                "Gyan.FFmpeg.Essentials",
-                "--accept-package-agreements",
-                "--accept-source-agreements",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        try:
+            result = subprocess.run(
+                [
+                    winget,
+                    "install",
+                    "-e",
+                    "--id",
+                    "Gyan.FFmpeg.Essentials",
+                    "--accept-package-agreements",
+                    "--accept-source-agreements",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=300,
+            )
+        except subprocess.TimeoutExpired:
+            return False, "Instalacja ffmpeg przekroczyla limit czasu (5 minut)."
+        except OSError as exc:
+            return False, str(exc)
         installed = self.refresh_ffmpeg_status()
         if result.returncode == 0 and installed:
             return True, "ffmpeg zostal zainstalowany i jest gotowy do uzycia."
@@ -139,6 +146,7 @@ class DownloaderService:
         self._cancel_event.clear()
         output_path = Path(output_dir).expanduser()
         output_path.mkdir(parents=True, exist_ok=True)
+        self.refresh_ffmpeg_status()
 
         for queued_task in tasks:
             if self._cancel_event.is_set():
@@ -155,7 +163,6 @@ class DownloaderService:
             self._emit(on_task_update, task)
 
             try:
-                self.refresh_ffmpeg_status()
                 if task.mode == DownloadMode.AUDIO and not self._ffmpeg_available:
                     raise RuntimeError("Tryb MP3 wymaga zainstalowanego ffmpeg w zmiennej PATH.")
 

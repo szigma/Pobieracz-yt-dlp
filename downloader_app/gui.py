@@ -367,20 +367,32 @@ class DownloaderApp:
         self.worker_thread.start()
 
     def _run_analysis(self, urls: list[str], mode: DownloadMode) -> None:
+        tasks: list[DownloadTask] = []
         try:
             tasks = self.service.analyze_urls(urls, mode, on_task_update=self.message_queue.put)
             for task in tasks:
                 self.message_queue.put(task)
-        finally:
+        except Exception as exc:  # noqa: BLE001
             self.message_queue.put(
                 DownloadTask(
                     id="__system__",
                     url="",
                     mode=mode,
-                    status="__analysis_done__",
-                    title=f"Analiza zakończona. Znaleziono {len(tasks)} pozycji.",
+                    status="__analysis_failed__",
+                    title=f"Analiza przerwana: {exc}",
                 )
             )
+            return
+
+        self.message_queue.put(
+            DownloadTask(
+                id="__system__",
+                url="",
+                mode=mode,
+                status="__analysis_done__",
+                title=f"Analiza zakonczona. Znaleziono {len(tasks)} pozycji.",
+            )
+        )
 
     def _start_downloads(self) -> None:
         if not self.tasks:
@@ -406,19 +418,30 @@ class DownloaderApp:
         self.worker_thread.start()
 
     def _run_downloads(self, tasks: list[DownloadTask], output_dir: str) -> None:
-        mode = DownloadMode(self.mode_var.get())
+        mode = tasks[0].mode if tasks else DownloadMode(self.mode_var.get())
         try:
             self.service.start_queue(tasks, output_dir, on_task_update=self.message_queue.put)
-        finally:
+        except Exception as exc:  # noqa: BLE001
             self.message_queue.put(
                 DownloadTask(
                     id="__system__",
                     url="",
                     mode=mode,
-                    status="__downloads_done__",
-                    title="Pobieranie zakończone.",
+                    status="__downloads_failed__",
+                    title=f"Pobieranie przerwane: {exc}",
                 )
             )
+            return
+
+        self.message_queue.put(
+            DownloadTask(
+                id="__system__",
+                url="",
+                mode=mode,
+                status="__downloads_done__",
+                title="Pobieranie zakonczone.",
+            )
+        )
 
     def _cancel_downloads(self) -> None:
         self.service.cancel_current()
@@ -457,9 +480,13 @@ class DownloaderApp:
                 task = self.message_queue.get_nowait()
                 if task.id == "__system__":
                     if task.status == "__analysis_done__":
-                        self._set_busy(False, task.title or "Analiza zakończona.")
+                        self._set_busy(False, task.title or "Analiza zakonczona.")
                     elif task.status == "__downloads_done__":
-                        self._set_busy(False, task.title or "Pobieranie zakończone.")
+                        self._set_busy(False, task.title or "Pobieranie zakonczone.")
+                    elif task.status == "__analysis_failed__":
+                        self._set_busy(False, task.title or "Analiza przerwana.")
+                    elif task.status == "__downloads_failed__":
+                        self._set_busy(False, task.title or "Pobieranie przerwane.")
                     continue
                 self._upsert_task(task)
         except queue.Empty:

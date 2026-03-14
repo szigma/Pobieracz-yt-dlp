@@ -228,8 +228,19 @@ class DownloaderService:
             if self._ffmpeg_available:
                 options["merge_output_format"] = "mp4"
 
-        with YoutubeDL(options) as ydl:
-            ydl.download([task.url])
+        try:
+            with YoutubeDL(options) as ydl:
+                ydl.download([task.url])
+        except DownloadError as exc:
+            if not self._is_certificate_error(exc):
+                raise
+            retry_options = dict(options)
+            retry_options["nocheckcertificate"] = True
+            task.status = "Retrying without certificate check"
+            task.error_message = ""
+            self._emit(on_task_update, task)
+            with YoutubeDL(retry_options) as ydl:
+                ydl.download([task.url])
         return final_path
 
     def _resolve_format_selector(self, task: DownloadTask) -> str:
@@ -570,6 +581,10 @@ class DownloaderService:
         if candidate.exists():
             return str(candidate)
         return None
-
     def _is_linux(self) -> bool:
         return self._platform == "Linux"
+
+    @staticmethod
+    def _is_certificate_error(exc: Exception) -> bool:
+        message = str(exc).lower()
+        return "certificate_verify_failed" in message or "unable to get local issuer certificate" in message

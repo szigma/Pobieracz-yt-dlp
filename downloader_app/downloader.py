@@ -299,7 +299,15 @@ class DownloaderService:
             with YoutubeDL(options) as ydl:
                 return ydl.extract_info(url, download=False)
         except DownloadError as exc:
-            raise RuntimeError(str(exc)) from exc
+            if not self._is_certificate_error(exc):
+                raise RuntimeError(str(exc)) from exc
+            retry_options = dict(options)
+            retry_options["nocheckcertificate"] = True
+            try:
+                with YoutubeDL(retry_options) as ydl:
+                    return ydl.extract_info(url, download=False)
+            except DownloadError as retry_exc:
+                raise RuntimeError(str(retry_exc)) from retry_exc
 
     def _build_output_path(self, task: DownloadTask, output_path: Path, info: dict) -> Path:
         info_for_name = dict(info)
@@ -581,6 +589,7 @@ class DownloaderService:
         if candidate.exists():
             return str(candidate)
         return None
+
     def _is_linux(self) -> bool:
         return self._platform == "Linux"
 
